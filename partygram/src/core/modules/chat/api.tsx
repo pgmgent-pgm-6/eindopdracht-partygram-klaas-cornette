@@ -8,7 +8,6 @@ export const getChats = async (): Promise<Chats[] | null> => {
 };
 
 export const createChat = async (chat: CreateChatsBody) => {
-  console.log(chat)
   const response = await supabase.from("chats").insert(chat).select().throwOnError().single();
   return Promise.resolve(response.data);
 };

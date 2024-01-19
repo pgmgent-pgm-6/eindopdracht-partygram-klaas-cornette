@@ -12,6 +12,7 @@ import { Image } from "react-native";
 import { Variables } from "@style";
 import useTitle from "@core/hooks/useTitle";
 import { useAuthContext } from "@shared/Auth/AuthProvider";
+import { getChats, createChat } from "@core/modules/chat/api";
 
 const ProfielScreen = () => {
   const router = useRouter();
@@ -19,11 +20,11 @@ const ProfielScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const { id } = useLocalSearchParams<{ id: string }>();
   const { username } = useLocalSearchParams<{ username: string }>();
-  const data = useAuthContext();
+  const user = useAuthContext();
   useTitle("Profiel van " + username + "");
   useEffect(() => {
     const fetch = async () => {
-      if (username == data.user?.username) {
+      if (username == user.user?.username) {
         router.push(`/(app)/(tabs)/profiel`);
       }
       try {
@@ -65,8 +66,47 @@ const ProfielScreen = () => {
     }
   };
 
-  const handelChat = (id: string) => {
-    router.push(`/(app)/(pages)/chat/${username}/${id}/create`);
+  const handelChat = async (id: string) => {
+    let chatId: number = -1;
+    const data = await getChats();
+    if (!user?.user?.id) {
+      console.log("no user");
+      return (
+        <>
+          <Text>User ophalen mislukt</Text>
+        </>
+      );
+    }
+    if (!data) {
+      console.log("no data");
+      return (
+        <>
+          <Text>Error bij ophalen van data</Text>
+        </>
+      );
+    }
+    if (data?.length == 0) {
+      console.log("no data");
+    } else {
+      data.forEach((chat: any) => {
+        if (
+          (chat.chater1 === id && chat.chater2 === user?.user?.id) ||
+          (chat.chater1 === user?.user?.id && chat.chater2 === id)
+        ) {
+          console.log("chat bestaat al");
+          chatId = chat.id;
+        }
+      });
+    }
+    const newChat = {
+      chater1: user.user.id,
+      chater2: id,
+    };
+    if (chatId == -1) {
+      console.log("chat bestaat nog niet");
+      chatId = await createChat(newChat);
+    }
+    router.push(`/(app)/(pages)/chat/${chatId}/detail`);
   };
 
   return (
