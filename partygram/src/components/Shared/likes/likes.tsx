@@ -2,7 +2,7 @@ import { View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
 import { getLikes, createLike, deleteLike } from "@core/modules/likes/api";
 import { StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Likes } from "@core/modules/likes/types";
 import { useAuthContext } from "@shared/Auth/AuthProvider";
 import { Variables } from "@style";
@@ -18,15 +18,23 @@ const LikeComponent: React.FC<{ id: number | undefined }> = ({ id }) => {
   const [likesCount, setLikesCount] = useState(0);
   const [switchLikes, setSwitchOnLikes] = useState<any>(false);
 
-  useFocusEffect(() => {
-    getBooleanValue("key1").then((value) => {
-      setSwitchOnLikes(value);
-    });
-    fetchLikes();
-  });
+  useFocusEffect(
+    useCallback(() => {
+      const fetchData = async () => {
+        const value = await getBooleanValue("key1");
+        console.log("value", value);
+        setSwitchOnLikes(value);
+        fetchLikes();
+      };
+      fetchData();
+      const intervalId = setInterval(fetchData, 100000);
+      return () => clearInterval(intervalId);
+    }, [])
+  );
 
   const fetchLikes = async () => {
     const likesData: Likes[] | null = await getLikes();
+    console.log("get like");
     if (likesData !== null) {
       const counter = likesData.filter((like) => like.post_id === id).length;
       const userPostLike = likesData.filter(
@@ -40,7 +48,7 @@ const LikeComponent: React.FC<{ id: number | undefined }> = ({ id }) => {
       }
     }
   };
-
+  
   const handelLike = async (update: string) => {
     try {
       const userId = data?.user?.id;

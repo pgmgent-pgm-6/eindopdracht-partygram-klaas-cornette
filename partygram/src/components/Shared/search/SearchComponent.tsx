@@ -29,9 +29,6 @@ const SearchComponent = ({ word }: { word: string }) => {
       return;
     }
     setPosts(fetchedPosts);
-    if(word.length > 2){
-      handelChange(word);
-    }
   };
 
   const handelChange = (event: string) => {

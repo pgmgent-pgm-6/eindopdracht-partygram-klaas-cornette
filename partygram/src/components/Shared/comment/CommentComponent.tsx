@@ -8,6 +8,7 @@ import { TouchableOpacity } from "react-native-gesture-handler";
 import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { getPublicUsers } from "@core/modules/auth/api";
+import { useCallback } from "react";
 
 const CommentComponent: React.FC<{ id: number | undefined }> = ({ id }) => {
   const [comments, setComments] = useState<Comment[]>([]);
@@ -16,11 +17,19 @@ const CommentComponent: React.FC<{ id: number | undefined }> = ({ id }) => {
   const [publicUsers, setpublicUsers] = useState<any[]>([]);
   const router = useRouter();
 
-  useFocusEffect(() => {
-    fetchComments();
-  });
+  useFocusEffect(
+    useCallback(() => {
+      const fetchData = async () => {
+        fetchComments();
+      };
+      fetchData();
+      const intervalId = setInterval(fetchData, 10000);
+      return () => clearInterval(intervalId);
+    }, [])
+  );
 
   const fetchComments = async () => {
+    console.log("fetch comments");
     const users = await getPublicUsers();
     if (!users) {
       console.log("Error fetching users");

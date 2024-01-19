@@ -11,7 +11,8 @@ import {
   deleteFavorite,
   getFavorites,
 } from "@core/modules/favorites/api";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
+import { useCallback } from "react";
 
 const FavorietenComponent: React.FC<{ id: number | undefined }> = ({ id }) => {
   const data = useAuthContext();
@@ -19,9 +20,16 @@ const FavorietenComponent: React.FC<{ id: number | undefined }> = ({ id }) => {
   const [loading, setLoading] = useState(false);
   const [isFavoriet, setIsFavoriet] = useState(false);
 
-  useFocusEffect(() => {
-    fetchFavorites();
-  });
+  useFocusEffect(
+    useCallback(() => {
+      const fetchData = async () => {
+        fetchFavorites();
+      };
+      fetchData();
+      const intervalId = setInterval(fetchData, 10000);
+      return () => clearInterval(intervalId);
+    }, [])
+  );
 
   const fetchFavorites = async () => {
     const favorietData: favorites[] | null = await getFavorites();
