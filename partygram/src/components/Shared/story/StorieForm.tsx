@@ -1,6 +1,5 @@
-import { View, Image, Button } from "react-native";
+import { View, Image, Button, Touchable } from "react-native";
 import { useMutation } from "@tanstack/react-query";
-import * as ImagePicker from "expo-image-picker";
 import AppForm from "@shared/Formik/AppForm";
 import AppSubmitButton from "@shared/Formik/AppSubmitButton";
 import { useState, useEffect } from "react";
@@ -10,8 +9,10 @@ import { useAuthContext } from "@shared/Auth/AuthProvider";
 import { StyleSheet } from "react-native";
 import { Variables } from "@style";
 import * as Location from "expo-location";
-import { ActivityIndicator } from "react-native";
 import { router } from "expo-router";
+import isVoid from "@core/utils/isVoid";
+import ImagePickerDialog from "@design/ImagePicker/ImagePickerDialog";
+import { decode } from "base64-arraybuffer";
 
 type Options = {
   showClient: boolean;
@@ -31,6 +32,7 @@ const StoryForm = <T extends CreateStoriesBody, U>({
 }: Props<T, U>) => {
   const [location, setLocation] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
+  const [showPicker, setShowPicker] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -77,59 +79,49 @@ const StoryForm = <T extends CreateStoriesBody, U>({
     }
   };
 
-  const handleImagePick = async () => {
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [9, 18],
-        quality: 1,
-      });
-
-      if (!result.canceled) {
-        setImage(result.assets[0].uri);
-        const filename = result.assets[0].uri
-          .replace(/[^a-zA-Z0-9-_]/g, "")
-          .substring(105);
-
-        const { data: storageData, error: storageError } =
-          await supabase.storage
-            .from("post")
-            .upload(`posts/${filename}`, result.assets[0].uri, {
-              contentType: "image/jpeg",
-            });
-        if (storageError) {
-          console.error("Supabase Storage Error:", storageError.message);
-        } else {
-          console.log("Image uploaded successfully:", storageData);
-        }
-      }
-    } catch (error: any) {
-      console.error("ImagePicker Error:", error.message);
-    }
-  };
-
-  if (location === "") {
-    return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size={"large"} color="#0000ff" />
-      </View>
-    );
-  }
-
   if (errorMsg) {
     alert(errorMsg);
     router.push("/");
   }
 
+  const handlePress = () => {
+    setShowPicker(true);
+  };
+
+  const handleImage = async (image: string) => {
+    setShowPicker(false);
+    if (!isVoid(image)) {
+      const fileName = `${Date.now()}.jpg`;
+      const { data: storageData, error: storageError } = await supabase.storage
+        .from("stories")
+        .upload(`${fileName}`, decode(image), {
+          contentType: "image/png",
+        });
+      if (storageError) {
+        console.error("Supabase Storage Error:", storageError.message);
+      } else {
+        console.log("Image uploaded successfully:", storageData);
+      }
+      const { data } = supabase.storage.from("stories").getPublicUrl(fileName);
+      const url = data?.publicUrl;
+      setImage(url);
+    }
+  };
+
   return (
     <>
       <AppForm initialValues={{ ...initialValues }} onSubmit={handleSubmit}>
         <View style={styles.container}>
-          <Button title="Kies foto" onPress={handleImagePick} />
+          <Button title="Kies foto" onPress={handlePress} />
           {image && <Image source={{ uri: image }} style={styles.image} />}
           <AppSubmitButton>Voeg verhaal toe</AppSubmitButton>
         </View>
+        {showPicker && (
+          <ImagePickerDialog
+            onDismiss={() => setShowPicker(false)}
+            onImage={handleImage}
+          />
+        )}
       </AppForm>
     </>
   );

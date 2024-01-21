@@ -23,14 +23,7 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.partygram.klaas",
-      "permissions": [
-        "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION",
-        "android.permission.FOREGROUND_SERVICE"
-      ]
+      "package": "com.partygram.klaas"
     },
     "web": {
       "bundler": "metro",
@@ -42,7 +35,7 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Allow Partygram to use your location."
+          "locationAlwaysAndWhenInUsePermission": "Laat Partygram u locatie gebruiken."
         }
       ]
     ],

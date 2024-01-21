@@ -1,7 +1,6 @@
 import * as yup from "yup";
-import { View, Image, Button, ActivityIndicator } from "react-native";
+import { View, Image, Button } from "react-native";
 import { useMutation } from "@tanstack/react-query";
-import * as ImagePicker from "expo-image-picker";
 import AppTextField from "@shared/Formik/AppTextField";
 import ErrorMessage from "@design/Text/ErrorMessage";
 import AppForm from "@shared/Formik/AppForm";
@@ -11,6 +10,9 @@ import { CreatePostBody, UpdatePostBody } from "@core/modules/posts/types";
 import { supabase } from "@core/api/supabase";
 import * as Location from "expo-location";
 import { router } from "expo-router";
+import isVoid from "@core/utils/isVoid";
+import ImagePickerDialog from "@design/ImagePicker/ImagePickerDialog";
+import { decode } from "base64-arraybuffer";
 
 const schema = yup.object().shape({
   description: yup.string().min(2).required(),
@@ -43,6 +45,7 @@ const PostForm = <T extends CreatePostBody | UpdatePostBody, U>({
 }: Props<T, U>) => {
   const [location, setLocation] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
+  const [showPicker, setShowPicker] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -80,45 +83,29 @@ const PostForm = <T extends CreatePostBody | UpdatePostBody, U>({
     }
   };
 
-  const handleImagePick = async () => {
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [4, 4],
-        quality: 1,
-      });
-
-      if (!result.canceled) {
-        setImage(result.assets[0].uri);
-        const filename = result.assets[0].uri
-          .replace(/[^a-zA-Z0-9-_]/g, "")
-          .substring(105);
-
-        const { data: storageData, error: storageError } =
-          await supabase.storage
-            .from("post")
-            .upload(`posts/${filename}`, result.assets[0].uri, {
-              contentType: "image/jpeg",
-            });
-        if (storageError) {
-          console.error("Supabase Storage Error:", storageError.message);
-        } else {
-          console.log("Image uploaded successfully:", storageData);
-        }
-      }
-    } catch (error: any) {
-      console.error("ImagePicker Error:", error.message);
-    }
+  const handlePress = () => {
+    setShowPicker(true);
   };
 
-  if (location === "") {
-    return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size={"large"} color="#0000ff" />
-      </View>
-    );
-  }
+  const handleImage = async (image: string) => {
+    setShowPicker(false);
+    if (!isVoid(image)) {
+      const fileName = `${Date.now()}.jpg`;
+      const { data: storageData, error: storageError } = await supabase.storage
+        .from("post")
+        .upload(`${fileName}`, decode(image), {
+          contentType: "image/png",
+        });
+      if (storageError) {
+        console.error("Supabase Storage Error:", storageError.message);
+      } else {
+        console.log("Image uploaded successfully:", storageData);
+      }
+      const { data } = supabase.storage.from("post").getPublicUrl(fileName);
+      const url = data?.publicUrl;
+      setImage(url);
+    }
+  };
 
   if (errorMsg) {
     alert(errorMsg);
@@ -143,15 +130,20 @@ const PostForm = <T extends CreatePostBody | UpdatePostBody, U>({
           <View
             style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
           >
-            <Button title="Kies foto" onPress={handleImagePick} />
+            <Button title="Kies foto" onPress={handlePress}/>
             {image && (
               <Image
                 source={{ uri: image }}
-                style={{ width: 200, height: 200 }}
+                style={{ width: 200, height: 200, marginTop: 10 }}
               />
             )}
           </View>
-
+          {showPicker && (
+          <ImagePickerDialog
+            onDismiss={() => setShowPicker(false)}
+            onImage={handleImage}
+          />
+        )}
           <AppSubmitButton disabled={isPending}>{label}</AppSubmitButton>
         </View>
       </AppForm>
