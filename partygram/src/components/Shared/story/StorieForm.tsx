@@ -34,15 +34,8 @@ const StoryForm = <T extends CreateStoriesBody, U>({
   const [errorMsg, setErrorMsg] = useState("");
   const [showPicker, setShowPicker] = useState(false);
 
-  useEffect(() => {
-    (async () => {
-      await getLocation();
-    })();
-  }, []);
-
   const getLocation = async () => {
     let { status } = await Location.requestForegroundPermissionsAsync();
-    console.log(status);
     if (status !== "granted") {
       setErrorMsg("Geen toegang tot locatie");
       return;
@@ -87,8 +80,9 @@ const StoryForm = <T extends CreateStoriesBody, U>({
     router.push("/");
   }
 
-  const handlePress = () => {
+  const handlePress = async () => {
     setShowPicker(true);
+    await getLocation();
   };
 
   const handleImage = async (image: string) => {

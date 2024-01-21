@@ -47,20 +47,16 @@ const PostForm = <T extends CreatePostBody | UpdatePostBody, U>({
   const [errorMsg, setErrorMsg] = useState("");
   const [showPicker, setShowPicker] = useState(false);
 
-  useEffect(() => {
-    (async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-
-      if (status !== "granted") {
-        setErrorMsg("Geen toegang tot locatie");
-        return;
-      }
-
-      let location = await Location.getCurrentPositionAsync({});
-      const locationString = `${location.coords.latitude}, ${location.coords.longitude}`;
-      setLocation(locationString);
-    })();
-  }, []);
+  const getLocation = async () => {
+    let { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== "granted") {
+      setErrorMsg("Geen toegang tot locatie");
+      return;
+    }
+    let location = await Location.getCurrentPositionAsync({});
+    const locationString = `${location.coords.latitude}, ${location.coords.longitude}`;
+    setLocation(locationString);
+  };
 
   const { mutate, isPending, isError, error } = useMutation({
     mutationFn: updateMethod,
@@ -76,14 +72,14 @@ const PostForm = <T extends CreatePostBody | UpdatePostBody, U>({
         picture: image,
         locatie: location,
       };
-      console.log("post", post);
       mutate(post);
     } else {
       alert("Kies foto");
     }
   };
 
-  const handlePress = () => {
+  const handlePress = async () => {
+    await getLocation();
     setShowPicker(true);
   };
 
