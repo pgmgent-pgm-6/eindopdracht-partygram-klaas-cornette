@@ -61,21 +61,24 @@ const StoryForm = <T extends CreateStoriesBody, U>({
   const data = useAuthContext();
 
   const handleSubmit = async (values: T) => {
-    await getLocation();
-    if (image) {
-      if (data?.user?.id === undefined) {
-        alert("Log in");
+    if(location === ""){
+      alert("Locatie niet gevonden");
+    }else {
+      if (image) {
+        if (data?.user?.id === undefined) {
+          alert("Log in");
+        } else {
+          const story: any = {
+            ...values,
+            picture: image,
+            user_id: data?.user?.id,
+            locatie: location,
+          };
+          mutate(story);
+        }
       } else {
-        const story: any = {
-          ...values,
-          picture: image,
-          user_id: data?.user?.id,
-          locatie: location,
-        };
-        mutate(story);
+        alert("Kies foto");
       }
-    } else {
-      alert("Kies foto");
     }
   };
 
