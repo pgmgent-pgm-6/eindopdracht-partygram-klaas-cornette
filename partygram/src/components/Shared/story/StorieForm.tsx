@@ -8,11 +8,10 @@ import { supabase } from "@core/api/supabase";
 import { useAuthContext } from "@shared/Auth/AuthProvider";
 import { StyleSheet } from "react-native";
 import { Variables } from "@style";
-import * as Location from "expo-location";
-import { router } from "expo-router";
 import isVoid from "@core/utils/isVoid";
 import ImagePickerDialog from "@design/ImagePicker/ImagePickerDialog";
 import { decode } from "base64-arraybuffer";
+import getLocation from "@shared/location/location";
 
 type Options = {
   showClient: boolean;
@@ -30,20 +29,7 @@ const StoryForm = <T extends CreateStoriesBody, U>({
   onSuccess,
   updateMethod,
 }: Props<T, U>) => {
-  const [location, setLocation] = useState("");
-  const [errorMsg, setErrorMsg] = useState("");
   const [showPicker, setShowPicker] = useState(false);
-
-  const getLocation = async () => {
-    let { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== "granted") {
-      setErrorMsg("Geen toegang tot locatie");
-      return;
-    }
-    let location = await Location.getCurrentPositionAsync({});
-    const locationString = `${location.coords.latitude}, ${location.coords.longitude}`;
-    setLocation(locationString);
-  };
 
   const { mutate } = useMutation({
     mutationFn: updateMethod,
@@ -54,8 +40,9 @@ const StoryForm = <T extends CreateStoriesBody, U>({
   const data = useAuthContext();
 
   const handleSubmit = async (values: T) => {
-    if(location === ""){
-      alert("Locatie niet gevonden");
+    const location = await getLocation();
+    if(location === "Geen toegang tot locatie"){
+      alert(location);
     }else {
       if (image) {
         if (data?.user?.id === undefined) {
@@ -75,14 +62,8 @@ const StoryForm = <T extends CreateStoriesBody, U>({
     }
   };
 
-  if (errorMsg) {
-    alert(errorMsg);
-    router.push("/");
-  }
-
   const handlePress = async () => {
     setShowPicker(true);
-    await getLocation();
   };
 
   const handleImage = async (image: string) => {

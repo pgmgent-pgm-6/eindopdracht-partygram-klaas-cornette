@@ -5,14 +5,13 @@ import AppTextField from "@shared/Formik/AppTextField";
 import ErrorMessage from "@design/Text/ErrorMessage";
 import AppForm from "@shared/Formik/AppForm";
 import AppSubmitButton from "@shared/Formik/AppSubmitButton";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { CreatePostBody, UpdatePostBody } from "@core/modules/posts/types";
 import { supabase } from "@core/api/supabase";
-import * as Location from "expo-location";
-import { router } from "expo-router";
 import isVoid from "@core/utils/isVoid";
 import ImagePickerDialog from "@design/ImagePicker/ImagePickerDialog";
 import { decode } from "base64-arraybuffer";
+import getLocation from "@shared/location/location";
 
 const schema = yup.object().shape({
   description: yup.string().min(2).required(),
@@ -30,43 +29,25 @@ type Props<T, U> = {
   options?: Partial<Options>;
 };
 
-type Location = {
-  coords: {
-    latitude: number;
-    longitude: number;
-  };
-};
-
 const PostForm = <T extends CreatePostBody | UpdatePostBody, U>({
   initialValues,
   onSuccess,
   updateMethod,
   label,
 }: Props<T, U>) => {
-  const [location, setLocation] = useState("");
-  const [errorMsg, setErrorMsg] = useState("");
   const [showPicker, setShowPicker] = useState(false);
-
-  const getLocation = async () => {
-    let { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== "granted") {
-      setErrorMsg("Geen toegang tot locatie");
-      return;
-    }
-    let location = await Location.getCurrentPositionAsync({});
-    const locationString = `${location.coords.latitude}, ${location.coords.longitude}`;
-    setLocation(locationString);
-  };
+  const [image, setImage] = useState<string>("");
 
   const { mutate, isPending, isError, error } = useMutation({
     mutationFn: updateMethod,
     onSuccess: onSuccess,
   });
 
-  const [image, setImage] = useState<string>("");
-
   const handleSubmit = async (values: T) => {
-    if (image) {
+    const location = await getLocation();
+    if (location === "Geen toegang tot locatie") {
+      alert(location);
+    } else if (image) {
       const post = {
         ...values,
         picture: image,
@@ -79,7 +60,6 @@ const PostForm = <T extends CreatePostBody | UpdatePostBody, U>({
   };
 
   const handlePress = async () => {
-    await getLocation();
     setShowPicker(true);
   };
 
@@ -103,11 +83,6 @@ const PostForm = <T extends CreatePostBody | UpdatePostBody, U>({
     }
   };
 
-  if (errorMsg) {
-    alert(errorMsg);
-    router.push("/");
-  }
-
   return (
     <>
       <AppForm
@@ -126,7 +101,7 @@ const PostForm = <T extends CreatePostBody | UpdatePostBody, U>({
           <View
             style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
           >
-            <Button title="Kies foto" onPress={handlePress}/>
+            <Button title="Kies foto" onPress={handlePress} />
             {image && (
               <Image
                 source={{ uri: image }}
@@ -135,11 +110,11 @@ const PostForm = <T extends CreatePostBody | UpdatePostBody, U>({
             )}
           </View>
           {showPicker && (
-          <ImagePickerDialog
-            onDismiss={() => setShowPicker(false)}
-            onImage={handleImage}
-          />
-        )}
+            <ImagePickerDialog
+              onDismiss={() => setShowPicker(false)}
+              onImage={handleImage}
+            />
+          )}
           <AppSubmitButton disabled={isPending}>{label}</AppSubmitButton>
         </View>
       </AppForm>
