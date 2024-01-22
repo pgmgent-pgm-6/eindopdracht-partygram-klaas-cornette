@@ -1,14 +1,19 @@
 import * as Location from "expo-location";
 
 const getLocation = async () => {
-    let { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== "granted") {
+  let { status } = await Location.requestForegroundPermissionsAsync();
+  if (status !== "granted") {
     return Promise.reject("Geen toegang tot locatie");
-    }
-    let location = await Location.getCurrentPositionAsync({});
+  }
+  try {
+    let location = await Location.getCurrentPositionAsync({
+      accuracy: Location.Accuracy.Highest,
+    });
     const locationString = `${location.coords.latitude}, ${location.coords.longitude}`;
-    console.log(locationString);
     return Promise.resolve(locationString);
-  };
+  } catch (error) {
+    alert(error);
+  }
+};
 
-  export default getLocation;
+export default getLocation;
